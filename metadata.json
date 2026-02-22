@@ -1,0 +1,8 @@
+{
+  "name": "Bharat AI-Gurukul",
+  "description": "A premium, voice-first educational ecosystem for students in rural India, featuring the Biti AI companion and a 100-stage Hinglish learning path.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
