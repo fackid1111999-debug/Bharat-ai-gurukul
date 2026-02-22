@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import BitiBot from './components/BitiBot';
 import Roadmap from './components/Roadmap';
 import Certificate from './components/Certificate';
@@ -48,7 +48,7 @@ async function decodeRawPcm(
 }
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'onboarding' | 'lang-select' | 'course-select' | 'world-select' | 'roadmap' | 'learning' | 'exam' | 'certificate' | 'about-me' | 'feedback'>('onboarding');
+  const [view, setView] = useState<'onboarding' | 'lang-select' | 'course-select' | 'world-select' | 'roadmap' | 'learning' | 'exam' | 'certificate'>('onboarding');
   const [progress, setProgress] = useState<UserProgress>({
     name: '',
     fatherName: '',
@@ -78,14 +78,6 @@ const App: React.FC = () => {
   const [showKO, setShowKO] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
   const [newBadges, setNewBadges] = useState<string[]>([]);
-  const [user, setUser] = useState<{ name: string; email: string; id: string } | null>(null);
-  const [feedbackName, setFeedbackName] = useState('');
-  const [feedbackEmail, setFeedbackEmail] = useState('');
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [feedbackError, setFeedbackError] = useState<string | null>(null);
-  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
-  const [showPrototypeNotice, setShowPrototypeNotice] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -112,12 +104,18 @@ const App: React.FC = () => {
     }
   };
 
-
+  const handleOnboarding = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (devInput === DEV_PASSWORD) {
+      setIsDeveloperMode(true);
+      alert("Developer Mode Unlocked: Access special debug features now.");
+    }
+    setView('lang-select');
+  };
 
   const selectLanguage = (langId: string) => {
     setProgress(prev => ({ ...prev, language: langId }));
-    setShowPrototypeNotice(true);
-    // setView('course-select'); // This will be called after the notice is dismissed
+    setView('course-select');
   };
 
   const selectCourse = (courseId: string) => {
@@ -401,87 +399,6 @@ const App: React.FC = () => {
     c.category.toLowerCase().includes(courseSearch.toLowerCase())
   );
 
-  const handleGoogleLogin = async () => {
-    try {
-      const response = await fetch('/auth/google');
-      const data = await response.json();
-      const authWindow = window.open(data.url, 'google_oauth', 'width=500,height=600');
-      if (!authWindow) {
-        alert('Popup blocked! Please enable popups for this site.');
-      }
-    } catch (error) {
-      console.error('Google login error:', error);
-      setError('Failed to initiate Google login.');
-    }
-  };
-
-  const handleDevLogin = () => {
-    if (devInput === DEV_PASSWORD) {
-      setIsDeveloperMode(true);
-      setProgress(p => ({ ...p, name: 'Developer', fatherName: 'Mode', contact: 'N/A' }));
-      setView('lang-select');
-      playSound(CULTURAL_SOUNDS.success);
-    } else {
-      alert('Incorrect Developer Password');
-    }
-  };
-
-  const handleSubmitFeedback = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFeedbackLoading(true);
-    setFeedbackError(null);
-    setFeedbackSuccess(false);
-
-    try {
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: feedbackName, email: feedbackEmail, message: feedbackMessage }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send feedback.');
-      }
-
-      setFeedbackSuccess(true);
-      setFeedbackName('');
-      setFeedbackEmail('');
-      setFeedbackMessage('');
-    } catch (error: any) {
-      setFeedbackError(error.message);
-    } finally {
-      setFeedbackLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return; // Ensure message is from same origin
-
-      if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-        const { userId, userName, userEmail } = event.data.payload;
-        setUser({ name: userName, email: userEmail, id: userId });
-        setProgress(p => ({ ...p, name: userName, contact: userEmail })); // Use email as contact for now
-        setView('lang-select');
-        playSound(CULTURAL_SOUNDS.success);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  const currentBook = progress.currentCourse && progress.currentBook
-    ? BOOKS[progress.currentCourse]?.find(book => book.id === progress.currentBook)
-    : null;
-
-  const currentBookTotalLevels = currentBook?.totalLevels || 200; // Default to 200 if not found
-  const progressPercentage = Math.round((progress.completedStages / currentBookTotalLevels) * 100);
-
   return (
     <div className="min-h-screen bg-[#020617] text-white flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative border-x border-gray-800 font-sans">
       <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-indigo-900/20 to-transparent pointer-events-none" />
@@ -500,18 +417,6 @@ const App: React.FC = () => {
             </motion.button>
           )}
           <h1 className="text-xl font-gurukul font-bold text-orange-500 tracking-tight">Bharat AI-Gurukul</h1>
-          <button 
-            onClick={() => setView('about-me')}
-            className="ml-4 text-xs text-gray-400 hover:text-orange-400 transition-colors"
-          >
-            About
-          </button>
-          <button 
-            onClick={() => setView('feedback')}
-            className="ml-4 text-xs text-gray-400 hover:text-orange-400 transition-colors"
-          >
-            Feedback
-          </button>
         </div>
         <div className="flex flex-col items-end">
           <div className="flex items-center space-x-2">
@@ -558,16 +463,11 @@ const App: React.FC = () => {
                 <h2 className="text-3xl font-gurukul font-bold mb-2">Namaste, Learner!</h2>
                 <p className="text-gray-400 text-sm">Your epic quest for knowledge begins here.</p>
               </div>
-
-              <div className="space-y-4">
-                <button 
-                  onClick={handleGoogleLogin}
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center space-x-3"
-                >
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_of_Google_%282015-2022%29.svg" alt="Google" className="h-6 w-6" referrerPolicy="no-referrer" />
-                  <span>Login with Google</span>
-                </button>
-
+              <form onSubmit={handleOnboarding} className="space-y-4">
+                <input required className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:border-orange-500 outline-none transition-all" placeholder="Full Name (eg. Rajesh Kumar)" value={progress.name} onChange={e => setProgress(p => ({...p, name: e.target.value}))} />
+                <input required className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:border-orange-500 outline-none transition-all" placeholder="Father's Name" value={progress.fatherName} onChange={e => setProgress(p => ({...p, fatherName: e.target.value}))} />
+                <input required type="tel" className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white focus:border-orange-500 outline-none transition-all" placeholder="Mobile Number" value={progress.contact} onChange={e => setProgress(p => ({...p, contact: e.target.value}))} />
+                
                 <div className="pt-6 border-t border-gray-800">
                   <p className="text-[10px] text-gray-500 uppercase font-black mb-3">Developer/Tester Access</p>
                   <input 
@@ -578,98 +478,15 @@ const App: React.FC = () => {
                     onChange={e => setDevInput(e.target.value)} 
                   />
                 </div>
-                <button onClick={handleDevLogin} className="w-full bg-purple-600 hover:bg-purple-500 text-white font-black py-4 rounded-xl transition-colors shadow-lg shadow-purple-500/20">Developer Login</button>
-              </div>
-            </motion.div>
-          )}
 
-          {view === 'about-me' && (
-            <motion.div
-              key="about-me"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 mt-6"
-            >
-              <h2 className="text-2xl font-gurukul font-bold text-orange-500">About Me & This Project</h2>
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
-                <p className="text-gray-400">My name: <span className="font-bold text-white">Sachin Bharti</span></p>
-                <p className="text-gray-400">District: <span className="font-bold text-white">Ghaziabad</span></p>
-                <div className="flex items-center space-x-2">
-                  <p className="text-gray-400">Contact: </p>
-                  <a 
-                    href="https://t.me/GEOMETRY13G"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-full transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.364 5.636l-1.414 1.414L17.586 9H13V4.414L15.95 1.464l1.414 1.414L18.364 5.636zM5.636 18.364l1.414-1.414L9 17.586V13H4.414L1.464 15.95l1.414 1.414L5.636 18.364zM18.364 18.364l-1.414-1.414L17.586 15H13v4.586l2.95 2.95l1.414-1.414L18.364 18.364zM5.636 5.636l1.414 1.414L9 6.414V11H4.414L1.464 8.05l1.414-1.414L5.636 5.636z"/></svg>
-                    <span>@GEOMETRY13G</span>
-                  </a>
-                </div>
-              </div>
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-xl font-bold text-teal-400">Project Idea: Bharat AI-Gurukul</h3>
-                <p className="text-gray-300 leading-relaxed">
-                  This project, Bharat AI-Gurukul, aims to revolutionize learning by combining ancient Indian wisdom with modern AI technology. 
-                  It's designed as an interactive quest where users embark on a journey through various stages of knowledge, 
-                  mastering different subjects and earning badges along the way. The AI acts as a personal guru, 
-                  guiding learners, providing explanations, and testing their understanding through engaging challenges. 
-                  The goal is to make learning an immersive and rewarding experience, fostering a deep understanding of concepts 
-                  while celebrating cultural heritage.
-                </p>
-                <p className="text-gray-300 leading-relaxed">
-                  My vision is to create a platform that adapts to each student's pace and learning style, 
-                  making complex topics accessible and enjoyable. By integrating gamification elements like quests, 
-                  badges, and a clear roadmap, I hope to motivate learners to achieve their full potential and 
-                  become masters of their chosen fields.
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {view === 'about-me' && (
-            <motion.div
-              key="about-me"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 mt-6"
-            >
-              <h2 className="text-2xl font-gurukul font-bold text-orange-500">About Me & This Project</h2>
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
-                <p className="text-gray-400">My name: <span className="font-bold text-white">Sachin Bharti</span></p>
-                <p className="text-gray-400">District: <span className="font-bold text-white">Ghaziabad</span></p>
-                <div className="flex items-center space-x-2">
-                  <p className="text-gray-400">Contact: </p>
-                  <a 
-                    href="https://t.me/GEOMETRY13G"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-full transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M18.364 5.636l-1.414 1.414L17.586 9H13V4.414L15.95 1.464l1.414 1.414L18.364 5.636zM5.636 18.364l1.414-1.414L9 17.586V13H4.414L1.464 15.95l1.414 1.414L5.636 18.364zM18.364 18.364l-1.414-1.414L17.586 15H13v4.586l2.95 2.95l1.414-1.414L18.364 18.364zM5.636 5.636l1.414 1.414L9 6.414V11H4.414L1.464 8.05l1.414-1.414L5.636 5.636z"/></svg>
-                    <span>@GEOMETRY13G</span>
-                  </a>
-                </div>
-              </div>
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-xl font-bold text-teal-400">Project Idea: Bharat AI-Gurukul</h3>
-                <p className="text-gray-300 leading-relaxed">
-                  This project, Bharat AI-Gurukul, aims to revolutionize learning by combining ancient Indian wisdom with modern AI technology. 
-                  It's designed as an interactive quest where users embark on a journey through various stages of knowledge, 
-                  mastering different subjects and earning badges along the way. The AI acts as a personal guru, 
-                  guiding learners, providing explanations, and testing their understanding through engaging challenges. 
-                  The goal is to make learning an immersive and rewarding experience, fostering a deep understanding of concepts 
-                  while celebrating cultural heritage.
-                </p>
-                <p className="text-gray-300 leading-relaxed">
-                  My vision is to create a platform that adapts to each student's pace and learning style, 
-                  making complex topics accessible and enjoyable. By integrating gamification elements like quests, 
-                  badges, and a clear roadmap, I hope to motivate learners to achieve their full potential and 
-                  become masters of their chosen fields.
-                </p>
-              </div>
+                <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-orange-600 font-bold p-4 rounded-xl shadow-lg hover:bg-orange-700 transition-all"
+                >
+                  START YOUR JOURNEY
+                </motion.button>
+              </form>
             </motion.div>
           )}
 
@@ -845,19 +662,11 @@ const App: React.FC = () => {
                   <div>
                     <h3 className="text-xs font-black text-orange-500 uppercase tracking-widest">Current Quest</h3>
                     <p className="text-sm font-bold text-white">Step {progress.completedStages}: {COURSES.find(c => c.id === progress.currentCourse)?.name}</p>
-                    <div className="w-full bg-gray-800 rounded-full h-1.5 mt-2">
-                      <motion.div
-                        className="bg-teal-500 h-1.5 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progressPercentage}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                      />
-                    </div>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black text-teal-400 uppercase">Progress</p>
-                  <p className="text-sm font-bold text-white">{progress.completedStages}/{currentBookTotalLevels} ({progressPercentage}%)</p>
+                  <p className="text-sm font-bold text-white">{Math.round((progress.completedStages / 200) * 100)}%</p>
                 </div>
               </div>
 
@@ -1011,60 +820,6 @@ const App: React.FC = () => {
               </button>
             </motion.div>
           )}
-          {view === 'feedback' && (
-            <motion.div
-              key="feedback"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6 mt-6"
-            >
-              <h2 className="text-2xl font-gurukul font-bold text-orange-500">Send Feedback to the Guru</h2>
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
-                <p className="text-gray-400 leading-relaxed">Your insights help us improve Bharat AI-Gurukul. Please share your thoughts, suggestions, or report any issues.</p>
-                <form onSubmit={handleSubmitFeedback} className="space-y-4">
-                  <input 
-                    type="text"
-                    placeholder="Your Name (Optional)"
-                    value={feedbackName}
-                    onChange={e => setFeedbackName(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white focus:border-teal-500 outline-none transition-all"
-                  />
-                  <input 
-                    type="email"
-                    placeholder="Your Email (Optional)"
-                    value={feedbackEmail}
-                    onChange={e => setFeedbackEmail(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white focus:border-teal-500 outline-none transition-all"
-                  />
-                  <textarea 
-                    placeholder="Your Feedback..."
-                    rows={5}
-                    required
-                    value={feedbackMessage}
-                    onChange={e => setFeedbackMessage(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-xl p-3 text-white focus:border-teal-500 outline-none transition-all resize-y"
-                  ></textarea>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    disabled={feedbackLoading}
-                    className="w-full bg-teal-600 hover:bg-teal-500 text-white font-black py-4 rounded-xl transition-colors shadow-lg shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {feedbackLoading ? 'SENDING...' : 'SEND FEEDBACK'}
-                  </motion.button>
-                </form>
-                {feedbackError && (
-                  <p className="text-red-400 text-sm text-center">Error: {feedbackError}</p>
-                )}
-                {feedbackSuccess && (
-                  <p className="text-green-400 text-sm text-center">Thank you for your feedback!</p>
-                )}
-                <p className="text-xs text-gray-500 text-center">Your feedback will be sent to the project maintainer's email.</p>
-              </div>
-            </motion.div>
-          )}
         </AnimatePresence>
       </main>
 
@@ -1185,37 +940,6 @@ const App: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {showPrototypeNotice && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-[110] p-6 text-center backdrop-blur-md"
-        >
-          <div className="bg-gray-900 border border-orange-500 rounded-3xl p-8 max-w-sm space-y-6 shadow-2xl">
-            <h3 className="text-3xl font-gurukul font-bold text-orange-500">Important Notice!</h3>
-            <p className="text-gray-300 leading-relaxed">
-              This is only a <strong>prototype project</strong>, developed for demonstration purposes. 
-              It is not a complete or fully functional application due to personal reasons and ongoing development.
-            </p>
-            <p className="text-gray-400 text-sm">
-              Thank you for understanding and for exploring this early version of Bharat AI-Gurukul!
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setShowPrototypeNotice(false);
-                setView('course-select');
-              }}
-              className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-4 rounded-xl transition-colors shadow-lg shadow-orange-500/20"
-            >
-              UNDERSTOOD, CONTINUE QUEST
-            </motion.button>
-          </div>
-        </motion.div>
-      )}
 
       {loading && (
         <div className="fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[100] backdrop-blur-md">

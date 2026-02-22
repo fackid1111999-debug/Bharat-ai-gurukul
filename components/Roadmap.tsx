@@ -19,7 +19,7 @@ const Roadmap: React.FC<RoadmapProps> = ({ currentStage, onSelectStage }) => {
     
     // Vertical progress (bottom to top)
     // God level (201) will be at ~6%, which is the location of the top Mahal
-    const y = stage === 201 ? 6 : 94 - (progress * 88); 
+    const y = 94 - (progress * 88); 
     
     // Horizontal winding (zigzag)
     // The path in the image has a specific winding flow that narrows as it reaches the peak
@@ -34,7 +34,7 @@ const Roadmap: React.FC<RoadmapProps> = ({ currentStage, onSelectStage }) => {
     // sin(1 * PI * 8 + phase) = 0 => phase should be 0 or PI.
     // We'll use PI to start the winding from the left side at the bottom.
     const phase = Math.PI;
-    const x = stage === 201 ? 90 : xBase + Math.sin(progress * Math.PI * turns + phase) * amplitude;
+    const x = xBase + Math.sin(progress * Math.PI * turns + phase) * (stage === 201 ? 0 : amplitude);
     
     return { x, y };
   };
